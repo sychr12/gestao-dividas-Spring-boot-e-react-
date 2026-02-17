@@ -1,77 +1,263 @@
-export default function Home() {
-  return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
-      {/* Header */}
-      <header className="flex items-center justify-between px-10 py-6 border-b border-white/10">
-        <h1 className="text-2xl font-bold tracking-tight">
-          💰 Dividas Control
-        </h1>
+"use client"
 
-        <nav className="space-x-6 text-sm text-gray-300">
-          <a href="#" className="hover:text-white transition">
-            Dashboard
-          </a>
-          <a href="#" className="hover:text-white transition">
-            Relatórios
-          </a>
-          <a href="#" className="hover:text-white transition">
-            Perfil
-          </a>
-        </nav>
-      </header>
+import { useEffect, useState } from "react"
+import Card from "@/app/components/card/Card"
+import Sidebar from "@/app/components/sidebar/Sidebar"
+import DebtChart from "@/app/components/chart/DebtChart"
+import DashboardSkeleton from "@/app/components/skeleton/DashboardSkeleton"
+import ErrorState from "@/app/components/error/ErrorState"
+import EmptyState from "@/app/components/empty/EmptyState"
 
-      {/* Hero */}
-      <section className="flex flex-col items-center justify-center text-center px-6 py-28">
-        <h2 className="text-5xl font-extrabold leading-tight max-w-3xl">
-          Controle total das suas finanças,
-          <span className="text-emerald-400"> sem dor de cabeça</span>
-        </h2>
-
-        <p className="mt-6 max-w-xl text-gray-300 text-lg">
-          Gerencie dívidas, acompanhe pagamentos e visualize relatórios
-          claros para tomar decisões inteligentes.
-        </p>
-
-        <div className="mt-10 flex gap-4">
-          <button className="px-8 py-3 rounded-xl bg-emerald-500 text-black font-semibold hover:bg-emerald-400 transition">
-            Começar agora
-          </button>
-
-          <button className="px-8 py-3 rounded-xl border border-white/20 hover:bg-white/10 transition">
-            Ver relatórios
-          </button>
-        </div>
-      </section>
-
-      {/* Cards */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-6 px-10 pb-24">
-        <Card
-          title="📊 Relatórios inteligentes"
-          text="Visualize suas dívidas, juros e pagamentos com gráficos claros."
-        />
-        <Card
-          title="🔒 Segurança"
-          text="Seus dados protegidos com autenticação e criptografia."
-        />
-        <Card
-          title="⚡ Rápido e simples"
-          text="Interface moderna, leve e pensada para produtividade."
-        />
-      </section>
-
-      {/* Footer */}
-      <footer className="text-center py-6 text-sm text-gray-400 border-t border-white/10">
-        © {new Date().getFullYear()} Dividas Control — Todos os direitos reservados
-      </footer>
-    </main>
-  );
+type CardData = {
+  name: string
+  used: number
+  limit: number
 }
 
-function Card({ title, text }: { title: string; text: string }) {
+type ChartData = {
+  name: string
+  value: number
+}
+
+type DashboardResponse = {
+  totalDebts: number
+  cardsCount: number
+  usedLimitPercent: number
+  cards: CardData[]
+  chartData: ChartData[]
+}
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
+
+export default function Home() {
+  const [data, setData] = useState<DashboardResponse | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const fetchDashboard = async () => {
+    const controller = new AbortController()
+    setLoading(true)
+    setError(null)
+
+    try {
+      const res = await fetch(`${API_URL}/dashboard`, { 
+        signal: controller.signal,
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+      })
+      
+      if (!res.ok) {
+        throw new Error(`Erro HTTP ${res.status}: ${res.statusText}`)
+      }
+      
+      const json = await res.json()
+      setData(json)
+    } catch (err) {
+      if (err instanceof Error && err.name !== 'AbortError') {
+        console.error('Erro ao carregar dashboard:', err)
+        setError('Não foi possível conectar ao servidor.')
+      }
+    } finally {
+      setLoading(false)
+    }
+
+    return () => controller.abort()
+  }
+
+  useEffect(() => {
+    fetchDashboard()
+  }, [])
+
+  // Loading State
+  if (loading) {
+    return <DashboardSkeleton />
+  }
+
+  // Error State
+  if (error) {
+    return (
+      <ErrorState
+        error={error}
+        onRetry={fetchDashboard}
+        onGoHome={() => window.location.reload()}
+      />
+    )
+  }
+
+  // Empty State
+  if (!data || data.cardsCount === 0) {
+    return (
+      <EmptyState
+        title="Nenhum cartão cadastrado"
+        description="Você ainda não possui cartões cadastrados. Adicione seu primeiro cartão para começar a acompanhar suas finanças."
+        actionLabel="Adicionar cartão"
+        onAction={() => {
+          // Navegar para página de adicionar cartão
+          // router.push('/cards/add')
+          alert('Funcionalidade em desenvolvimento')
+        }}
+      />
+    )
+  }
+
+  const highRiskCards = data.cards.filter(
+    card => (card.used / card.limit) * 100 > 80
+  )
+
   return (
-    <div className="rounded-2xl bg-white/5 border border-white/10 p-6 hover:bg-white/10 transition">
-      <h3 className="text-xl font-semibold mb-3">{title}</h3>
-      <p className="text-gray-300 text-sm">{text}</p>
+    <div className="flex min-h-screen bg-slate-100">
+      <Sidebar />
+
+      <main className="flex-1 p-6 lg:p-8">
+        <div className="max-w-7xl mx-auto space-y-10">
+
+          {/* HEADER */}
+          <header className="animate-fade-in">
+            <h1 className="text-2xl font-semibold text-slate-900">
+              Dashboard
+            </h1>
+            <p className="text-sm text-slate-500 mt-1">
+              Visão geral das suas finanças
+            </p>
+          </header>
+
+          {/* KPIs */}
+          <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 animate-slide-up">
+            <Card
+              title="Total em dívidas"
+              value={`R$ ${data.totalDebts.toLocaleString("pt-BR")}`}
+            />
+            <Card
+              title="Cartões ativos"
+              value={data.cardsCount.toString()}
+            />
+            <Card
+              title="Uso total do limite"
+              value={`${data.usedLimitPercent}%`}
+            />
+          </section>
+
+          {/* GRÁFICO + ALERTAS */}
+          <section className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-slide-up" style={{ animationDelay: '100ms' }}>
+
+            <div className="lg:col-span-2 bg-white rounded-2xl shadow-md p-6 hover:shadow-lg transition-shadow">
+              <h2 className="text-lg font-semibold text-slate-900 mb-4">
+                Dívidas por bandeira
+              </h2>
+              <DebtChart data={data.chartData} />
+            </div>
+
+            <div className="bg-white rounded-2xl shadow-md p-6 space-y-4 hover:shadow-lg transition-shadow">
+              <h2 className="text-lg font-semibold text-slate-900">
+                Alertas
+              </h2>
+
+              {highRiskCards.length === 0 && (
+                <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 border border-green-200 rounded-lg p-4">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span>Nenhum cartão em risco no momento</span>
+                </div>
+              )}
+
+              {highRiskCards.map((card, index) => {
+                const percent = Math.round(
+                  (card.used / card.limit) * 100
+                )
+
+                return (
+                  <div
+                    key={card.name}
+                    className="bg-red-50 border border-red-200 rounded-lg p-4 animate-fade-in"
+                    style={{ animationDelay: `${index * 50}ms` }}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="text-sm font-semibold text-red-700">
+                          {card.name}
+                        </p>
+                        <p className="text-xs text-red-600 mt-1">
+                          {percent}% do limite utilizado
+                        </p>
+                      </div>
+                      <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+          </section>
+
+          {/* RANKING */}
+          <section className="bg-white rounded-2xl shadow-md p-6 hover:shadow-lg transition-shadow animate-slide-up" style={{ animationDelay: '200ms' }}>
+            <h2 className="text-lg font-semibold text-slate-900 mb-4">
+              Cartões mais endividados
+            </h2>
+
+            <ul className="space-y-3">
+              {[...data.cards]
+                .sort(
+                  (a, b) =>
+                    b.used / b.limit - a.used / a.limit
+                )
+                .map((card, index) => {
+                  const percent = Math.round(
+                    (card.used / card.limit) * 100
+                  )
+
+                  return (
+                    <li
+                      key={card.name}
+                      className="flex justify-between items-center bg-slate-50 rounded-lg px-4 py-3 hover:bg-slate-100 transition-colors cursor-pointer"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="flex items-center justify-center w-8 h-8 bg-slate-200 text-slate-700 rounded-full text-sm font-bold">
+                          #{index + 1}
+                        </span>
+                        <span className="text-sm font-medium text-slate-900">
+                          {card.name}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <div className="w-24 h-2 bg-slate-200 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full transition-all ${
+                              percent > 80
+                                ? "bg-red-500"
+                                : percent > 60
+                                ? "bg-yellow-500"
+                                : "bg-green-500"
+                            }`}
+                            style={{ width: `${percent}%` }}
+                          />
+                        </div>
+                        <span
+                          className={`text-sm font-semibold min-w-12 text-right ${
+                            percent > 80
+                              ? "text-red-600"
+                              : percent > 60
+                              ? "text-yellow-600"
+                              : "text-slate-700"
+                          }`}
+                        >
+                          {percent}%
+                        </span>
+                      </div>
+                    </li>
+                  )
+                })}
+            </ul>
+          </section>
+
+        </div>
+      </main>
     </div>
-  );
+  )
 }

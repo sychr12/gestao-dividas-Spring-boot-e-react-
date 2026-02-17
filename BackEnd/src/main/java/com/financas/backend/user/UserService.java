@@ -1,8 +1,9 @@
 package com.financas.backend.user;
 
-import com.financas.backend.user.dto.LoginRequest;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import com.financas.backend.user.dto.LoginRequest;
 
 @Service
 public class UserService {
@@ -38,4 +39,3 @@ public class UserService {
         return user;
     }
 }
-

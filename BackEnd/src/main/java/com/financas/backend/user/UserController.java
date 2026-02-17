@@ -1,5 +1,8 @@
 package com.financas.backend.user;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -9,8 +12,11 @@ import com.financas.backend.user.dto.LoginRequest;
 import com.financas.backend.user.dto.UserRequest;
 import com.financas.backend.user.dto.UserResponse;
 
+import jakarta.validation.Valid;
+
 @RestController
 @RequestMapping("/users")
+@CrossOrigin(origins = "*")
 public class UserController {
 
     private final UserService service;
@@ -20,30 +26,43 @@ public class UserController {
     }
 
     @PostMapping("/register")
-    public UserResponse register(@RequestBody UserRequest request) {
-        User user = new User();
-        user.setUsername(request.username());
-        user.setEmail(request.email());
-        user.setPassword(request.senha());
+    public ResponseEntity<UserResponse> register(@Valid @RequestBody UserRequest request) {
+        try {
+            User user = new User();
+            user.setUsername(request.username());
+            user.setEmail(request.email());
+            user.setPassword(request.password());
 
-        User savedUser = service.salvar(user);
+            User savedUser = service.salvar(user);
 
-        return new UserResponse(
-                savedUser.getId(),
-                savedUser.getUsername(),
-                savedUser.getEmail()
-        );
+            UserResponse response = new UserResponse(
+                    savedUser.getId(),
+                    savedUser.getUsername(),
+                    savedUser.getEmail()
+            );
+            
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } catch (RuntimeException e) {
+            // Log do erro
+            throw e; // Será tratado pelo @ControllerAdvice
+        }
     }
 
     @PostMapping("/login")
-    public UserResponse login(@RequestBody LoginRequest request) {
+    public ResponseEntity<UserResponse> login(@Valid @RequestBody LoginRequest request) {
+        try {
+            User user = service.login(request);
 
-        User user = service.login(request);
-
-        return new UserResponse(
-                user.getId(),
-                user.getUsername(),
-                user.getEmail()
-        );
+            UserResponse response = new UserResponse(
+                    user.getId(),
+                    user.getUsername(),
+                    user.getEmail()
+            );
+            
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            // Log do erro
+            throw e; // Será tratado pelo @ControllerAdvice
+        }
     }
 }

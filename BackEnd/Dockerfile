@@ -1,4 +1,5 @@
-FROM maven:3.9.6-eclipse-temurin-21 AS build
+# ===== STAGE 1: BUILD =====
+FROM maven:3.9.6-eclipse-temurin-17 AS build
 
 WORKDIR /app
 
@@ -8,7 +9,9 @@ RUN mvn dependency:go-offline
 COPY src ./src
 RUN mvn clean package -DskipTests
 
-FROM eclipse-temurin:21-jre
+
+# ===== STAGE 2: RUNTIME =====
+FROM eclipse-temurin:17-jre
 
 WORKDIR /app
 

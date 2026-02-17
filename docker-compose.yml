@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   postgres:
     image: postgres:16
@@ -14,6 +12,12 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - app_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
 
   backend:
     build:
@@ -23,18 +27,28 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/financas
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres
-      SPRING_JPA_HIBERNATE_DDL_AUTO: create
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_PROFILES_ACTIVE: docker
+      # Pluggy integration key (required by PluggyService). Replace with real key.
+      PLUGGY_API_KEY: "test-key"
+      # default Spring Security credentials (override in production)
+      SPRING_SECURITY_USER_NAME: admin
+      SPRING_SECURITY_USER_PASSWORD: luiz1234
+      # disable devtools restart inside container (extra safety)
+      SPRING_DEVTOOLS_RESTART_ENABLED: "false"
     networks:
       - app_network
+    restart: unless-stopped
 
   frontend:
     build:
-      context: ./frontend
+      context: ./FrontEnd
       dockerfile: Dockerfile
     container_name: next_frontend
     ports:
@@ -42,9 +56,10 @@ services:
     depends_on:
       - backend
     environment:
-      NEXT_PUBLIC_API_URL: http://backend:8080
+      NEXT_PUBLIC_API_URL: http://localhost:8080
     networks:
       - app_network
+    restart: unless-stopped
 
 volumes:
   postgres_data:

@@ -1,0 +1,57 @@
+{"properties": [
+  {
+    "name": "app.api.key",
+    "type": "java.lang.String",
+    "description": "A description for 'app.api.key'"
+  },
+  {
+    "name": "management.endpoints.web.exposure.include",
+    "type": "java.lang.String",
+    "description": "A description for 'management.endpoints.web.exposure.include'"
+  },
+  {
+    "name": "management.endpoint.health.show-details",
+    "type": "java.lang.String",
+    "description": "A description for 'management.endpoint.health.show-details'"
+  },
+  {
+    "name": "management.health.db.enabled",
+    "type": "java.lang.String",
+    "description": "A description for 'management.health.db.enabled'"
+  },
+  {
+    "name": "pluggy.api.key",
+    "type": "java.lang.String",
+    "description": "A description for 'pluggy.api.key'"
+  },
+  {
+    "name": "jwt.secret",
+    "type": "java.lang.String",
+    "description": "A description for 'jwt.secret'"
+  },
+  {
+    "name": "jwt.expiration",
+    "type": "java.lang.String",
+    "description": "A description for 'jwt.expiration'"
+  },
+  {
+    "name": "cors.allowed-origins",
+    "type": "java.lang.String",
+    "description": "A description for 'cors.allowed-origins'"
+  },
+  {
+    "name": "cors.allowed-methods",
+    "type": "java.lang.String",
+    "description": "A description for 'cors.allowed-methods'"
+  },
+  {
+    "name": "cors.allowed-headers",
+    "type": "java.lang.String",
+    "description": "A description for 'cors.allowed-headers'"
+  },
+  {
+    "name": "cors.allow-credentials",
+    "type": "java.lang.String",
+    "description": "A description for 'cors.allow-credentials'"
+  }
+]}
